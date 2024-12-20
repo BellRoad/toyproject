@@ -4,9 +4,11 @@ from datetime import datetime, timedelta
 import sqlite3
 import re
 import sys
+from openpyxl import load_workbook
 
 # 데이터베이스 파일명
 DB_FILENAME = '카페5월5일매출.db'
+EXCEL_FILENAME = '보고서출력.xlsx'
 
 # 기본 설정
 root = tk.Tk()
@@ -55,7 +57,7 @@ def evaluate_expression(expression):
     except Exception:
         return expression
 
-# 날짜 입력 프레임
+# GUI 구성
 frame_date = ttk.Frame(root)
 frame_date.pack(pady=10)
 
@@ -69,7 +71,6 @@ entry_date.bind('<FocusOut>', format_date)
 btn_next = ttk.Button(frame_date, text='>>', command=lambda: update_date(1))
 btn_next.pack(side='left')
 
-# 상품 리스트 프레임
 frame_products = ttk.Frame(root)
 frame_products.pack(pady=10)
 
@@ -81,13 +82,12 @@ entries = []
 for i, product_name in enumerate(product_names, start=1):
     ttk.Label(frame_products, text=product_name, font=font).grid(row=i, column=0, padx=5)
     
-    entry_quantity = ttk.Entry(frame_products, font=font, width=10, justify='right')  # 우측 정렬 설정
+    entry_quantity = ttk.Entry(frame_products, font=font, width=10, justify='right')
     entry_quantity.grid(row=i, column=1, padx=5)
     
-    entry_amount = ttk.Entry(frame_products, font=font, width=10, justify='right')  # 우측 정렬 설정
+    entry_amount = ttk.Entry(frame_products, font=font, width=10, justify='right')
     entry_amount.grid(row=i, column=2, padx=5)
 
-    # 수식 평가 이벤트 추가
     def on_focus_out(event=None, entry_field=None):
         value = entry_field.get()
         entry_field.delete(0, tk.END)
@@ -96,12 +96,10 @@ for i, product_name in enumerate(product_names, start=1):
     entry_quantity.bind('<FocusOut>', lambda e, field=entry_quantity: on_focus_out(e, field))
     entry_amount.bind('<FocusOut>', lambda e, field=entry_amount: on_focus_out(e, field))
     
-    # 특정 항목의 수량 입력란 비활성화 및 기본값 설정
     if product_name in disable_quantity_items:
         entry_quantity.config(state='disabled')
         entry_quantity.insert(0, '0')
     
-    # '직원제공' 항목의 금액란 비활성화 및 기본값 설정
     if product_name == disable_amount_item:
         entry_amount.config(state='disabled')
         entry_amount.insert(0, '0')
@@ -141,18 +139,15 @@ def save_to_db():
     
     date = date_var.get()
     
-    # 기존 데이터 삭제
     cursor.execute("DELETE FROM 매출 WHERE 날짜 = ?", (date,))
     
     for product_name, quantity_entry, amount_entry in entries:
-        quantity = quantity_entry.get().strip()  # 공백 제거
-        amount = amount_entry.get().strip()  # 공백 제거
+        quantity = quantity_entry.get().strip()
+        amount = amount_entry.get().strip()
         
-        # 빈 문자열인 경우 기본값 0으로 설정
         quantity = int(quantity) if quantity.isdigit() else 0
         amount = int(amount) if amount.isdigit() else 0
         
-        # 수량과 금액이 모두 0이 아닌 경우에만 DB에 반영
         if quantity != 0 or amount != 0:
             cursor.execute('''
                 INSERT INTO 매출 (날짜, 상품ID, 수량, 금액) 
@@ -162,8 +157,32 @@ def save_to_db():
     conn.commit()
     conn.close()
     messagebox.showinfo("성공", "데이터가 성공적으로 저장되었습니다.")
-    root.quit()  # Tkinter 창 종료
-    sys.exit()  # 프로그램 종료
+    update_excel_cells()
+    root.quit()
+    sys.exit()
+
+# 엑셀 파일 업데이트 함수
+def fetch_cell_positions():
+    conn = sqlite3.connect(DB_FILENAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT 수량_셀, 금액_셀 FROM 상품리스트")
+    cell_positions = cursor.fetchall()
+    conn.close()
+    return cell_positions
+
+def update_excel_cells():
+    cell_positions = fetch_cell_positions()
+    wb = load_workbook(EXCEL_FILENAME)
+    sheet = wb.active
+
+    for quantity_cell, amount_cell in cell_positions:
+        if quantity_cell:
+            sheet[quantity_cell].value = 0
+        if amount_cell:
+            sheet[amount_cell].value = 0
+
+    wb.save(EXCEL_FILENAME)
+    print("엑셀 파일이 성공적으로 업데이트되었습니다.")
 
 # 입력 버튼
 btn_save = ttk.Button(root, text='입력', command=save_to_db)
