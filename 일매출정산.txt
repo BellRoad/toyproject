@@ -1,3 +1,33 @@
+
+
+--
+추가 요청 할께.
+
+입력한 날짜의 1일부터 입력한 날짜까지 아래 조건에 대한 합계를 넣어줘
+D31에는 ame 수량
+E31에는 ame 금액
+
+D32에는 etc_coffee 수량
+E32에는 etc_coffee 금액
+
+D33에는 etc_beverage 수량
+E33에는 etc_beverage 금액
+
+D34에는 desert 수량
+E34에는 desert 금액
+
+D35에는 place 수량
+E35에는 place 금액
+
+D36에는 employees_supply 수량
+
+D37에는 etc 수량
+E37에는 etc 금액
+
+I37에는 event_in 금액 + etc_in 금액
+
+--
+
 DB의 매출 테이블에서 처음 입력 받은 날짜의 자료를 가져와
 '매출.상품ID'필드의 값을 '상품리스트.id'필드와 조인해줘
 '상품리스트.수량_셀'과 '상품리스트.금액_셀'의 값이 액셀의 셀 위치야.
